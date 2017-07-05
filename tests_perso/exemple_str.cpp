@@ -47,7 +47,7 @@ int main() {
     }
 
     std::cout << ss.str() << std::endl;
-    base *deserialized = nullptr;
+    base *deserialized = NULL;
     {
         boost::archive::text_iarchive ar1(ss);
         ar1 >> boost::serialization::make_nvp("base", deserialized);

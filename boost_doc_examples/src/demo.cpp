@@ -13,7 +13,7 @@
 #include <fstream>
 #include <string>
 
-#include <boost/archive/tmpdir.hpp>
+// #include <boost/archive/tmpdir.hpp>
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
@@ -22,6 +22,9 @@
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/list.hpp>
 #include <boost/serialization/assume_abstract.hpp>
+
+#include <sstream>
+std::stringstream ss;
 
 /////////////////////////////////////////////////////////////
 // The intent of this program is to serve as a tutorial for
@@ -283,7 +286,8 @@ std::ostream & operator<<(std::ostream &os, const bus_schedule &bs)
 void save_schedule(const bus_schedule &s, const char * filename){
     // make an archive
     std::ofstream ofs(filename);
-    boost::archive::text_oarchive oa(ofs);
+    // boost::archive::text_oarchive oa(ofs);
+    boost::archive::text_oarchive oa(ss);
     oa << s;
 }
 
@@ -292,7 +296,8 @@ restore_schedule(bus_schedule &s, const char * filename)
 {
     // open the archive
     std::ifstream ifs(filename);
-    boost::archive::text_iarchive ia(ifs);
+    // boost::archive::text_iarchive ia(ifs);
+    boost::archive::text_iarchive ia(ss);
 
     // restore the schedule from the archive
     ia >> s;
@@ -365,7 +370,7 @@ int main(int argc, char *argv[])
 
     restore_schedule(new_schedule, filename.c_str());
 
-    // // and display
+    // and display
     std::cout << "\n\n\nrestored schedule";
     std::cout << new_schedule << "\n";
     // should be the same as the old one. (except for the pointer values)

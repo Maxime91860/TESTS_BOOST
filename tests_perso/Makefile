@@ -4,9 +4,15 @@ BOOST_IFLAG=-I$(BOOST_PATH)/include
 BOOST_LDFLAG=-L$(BOOST_PATH)/lib -lboost_serialization
 BOOST_FLAGS=$(BOOST_IFLAG) $(BOOST_LDFLAG)
 
-all : ex1
+all : ex1 ex2 exemple_str
 
 ex1 : exemple1.cpp
+	c++ $^ $(BOOST_FLAGS) -o $@.exe
+
+ex2 : exemple2.cpp
+	c++ $^ $(BOOST_FLAGS) -o $@.exe
+
+exemple_str: exemple_str.cpp
 	c++ $^ $(BOOST_FLAGS) -o $@.exe
 
 clean : 
