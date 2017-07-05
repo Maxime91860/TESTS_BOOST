@@ -24,13 +24,6 @@
 #include <math.h>
 #include <vector>
 
-
-// Boost library
-#include <fstream>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/serialization/vector.hpp>   
-
 //**************************************************
 // Allow flexibility for arithmetic representations 
 //**************************************************
@@ -140,26 +133,6 @@ class Domain {
           Index_t rowLoc, Index_t planeLoc,
           Index_t nx, Int_t tp, Int_t nr, Int_t balance, Int_t cost);
 
-   Domain ()   :
-   m_e_cut(Real_t(1.0e-7)),
-   m_p_cut(Real_t(1.0e-7)),
-   m_q_cut(Real_t(1.0e-7)),
-   m_v_cut(Real_t(1.0e-10)),
-   m_u_cut(Real_t(1.0e-7)),
-   m_hgcoef(Real_t(3.0)),
-   m_ss4o3(Real_t(4.0)/Real_t(3.0)),
-   m_qstop(Real_t(1.0e+12)),
-   m_monoq_max_slope(Real_t(1.0)),
-   m_monoq_limiter_mult(Real_t(2.0)),
-   m_qlc_monoq(Real_t(0.5)),
-   m_qqc_monoq(Real_t(2.0)/Real_t(3.0)),
-   m_qqc(Real_t(2.0)),
-   m_eosvmax(Real_t(1.0e+9)),
-   m_eosvmin(Real_t(1.0e-9)),
-   m_pmin(Real_t(0.)),
-   m_emin(Real_t(-1.0e+15)),
-   m_dvovmax(Real_t(0.1)),
-   m_refdens(Real_t(1.0)) {};
    //
    // ALLOCATION
    //
@@ -442,192 +415,6 @@ class Domain {
 
   private:
 
-   friend class boost::serialization::access;
-   template<class Archive>
-   void serialize(Archive & ar, const unsigned int version)
-   {
-      ar & m_x; /* coordinates */
-      ar & m_y;
-      ar & m_z;
-
-      ar & m_xd ; /* velocities */
-      ar & m_yd ;
-      ar & m_zd ;
-
-      ar & m_xdd ; /* accelerations */
-      ar & m_ydd ;
-      ar & m_zdd ;
-
-      ar & m_fx ;  /* forces */
-      ar & m_fy ;
-      ar & m_fz ;
-
-      ar & m_nodalMass ;  /* mass */
-
-      ar & m_symmX ;  /* symmetry plane nodesets */
-      ar & m_symmY ;
-      ar & m_symmZ ;
-
-      // Element-centered
-
-      // Region information
-      ar &  m_numReg ;
-      ar &  m_cost; //imbalance cost
-      for (int i = 0; i < m_numReg; ++i)
-      {
-         ar &  m_regElemSize[i] ;   // Size of region sets
-      }
-      for (int i = 0; i < m_numElem; ++i)
-      {
-         ar &  m_regNumList[i] ;    // Region number per domain element
-      }
-      for (int i = 0; i < m_numReg; ++i)
-      {
-         for (int j = 0; j < m_regElemSize[i]; ++j)
-         {
-            ar &  m_regElemlist[i][j] ;  // region indexset 
-         }
-      }
-      
-
-      ar &  m_nodelist ;     /* elemToNode connectivity */
-
-      ar & m_lxim ;  /* element connectivity across each face */
-      ar & m_lxip ;
-      ar & m_letam ;
-      ar & m_letap ;
-      ar & m_lzetam ;
-      ar & m_lzetap ;
-
-      ar & m_elemBC ;  /* symmetry/free-surface flags for each elem face */
-
-      ar & m_dxx ;  /* principal strains -- temporary */
-      ar & m_dyy ;
-      ar & m_dzz ;
-
-      ar & m_delv_xi ;    /* velocity gradient -- temporary */
-      ar & m_delv_eta ;
-      ar & m_delv_zeta ;
-
-      ar & m_delx_xi ;    /* coordinate gradient -- temporary */
-      ar & m_delx_eta ;
-      ar & m_delx_zeta ;
-   
-      ar & m_e ;   /* energy */
-
-      ar & m_p ;   /* pressure */
-      ar & m_q ;   /* q */
-      ar & m_ql ;  /* linear term for q */
-      ar & m_qq ;  /* quadratic term for q */
-
-      ar & m_v ;     /* relative volume */
-      ar & m_volo ;  /* reference volume */
-      ar & m_vnew ;  /* new relative volume -- temporary */
-      ar & m_delv ;  /* m_vnew - m_v */
-      ar & m_vdov ;  /* volume derivative over volume */
-
-      ar & m_arealg ;  /* characteristic length of an element */
-   
-      ar & m_ss ;      /* "sound speed" */
-
-      ar & m_elemMass ;  /* mass */
-
-      // Cutoffs (treat as constants)
-      // ar &  m_e_cut ;             // energy tolerance 
-      ar & const_cast<Real_t &>(m_e_cut);
-      // ar &  m_p_cut ;             // pressure tolerance 
-      ar & const_cast<Real_t &>(m_p_cut);
-      // ar &  m_q_cut ;             // q tolerance 
-      ar & const_cast<Real_t &>(m_q_cut);
-      // ar &  m_v_cut ;             // relative volume tolerance 
-      ar & const_cast<Real_t &>(m_v_cut);
-      // ar &  m_u_cut ;             // velocity tolerance 
-      ar & const_cast<Real_t &>(m_u_cut);
-
-      // Other constants (usually setable, but hardcoded in this proxy app)
-
-      // ar &  m_hgcoef ;            // hourglass control 
-      ar & const_cast<Real_t &>(m_hgcoef);
-      // ar &  m_ss4o3 ;
-      ar & const_cast<Real_t &>(m_ss4o3);
-      // ar &  m_qstop ;             // excessive q indicator 
-      ar & const_cast<Real_t &>(m_qstop);
-      // ar &  m_monoq_max_slope ;
-      ar & const_cast<Real_t &>(m_monoq_max_slope);
-      // ar &  m_monoq_limiter_mult ;
-      ar & const_cast<Real_t &>(m_monoq_limiter_mult);
-      // ar &  m_qlc_monoq ;         // linear term coef for q 
-      ar & const_cast<Real_t &>(m_qlc_monoq);
-      // ar &  m_qqc_monoq ;         // quadratic term coef for q 
-      ar & const_cast<Real_t &>(m_qqc_monoq);
-      // ar &  m_qqc ;
-      ar & const_cast<Real_t &>(m_qqc);
-      // ar &  m_eosvmax ;
-      ar & const_cast<Real_t &>(m_eosvmax);
-      // ar &  m_eosvmin ;
-      ar & const_cast<Real_t &>(m_eosvmin);
-      // ar &  m_pmin ;              // pressure floor 
-      ar & const_cast<Real_t &>(m_pmin);
-      // ar &  m_emin ;              // energy floor 
-      ar & const_cast<Real_t &>(m_emin);
-      // ar &  m_dvovmax ;           // maximum allowable volume change 
-      ar & const_cast<Real_t &>(m_dvovmax);
-      // ar &  m_refdens ;           // reference density 
-      ar & const_cast<Real_t &>(m_refdens);
-
-      // // Variables to keep track of timestep, simulation time, and cycle
-      ar &  m_dtcourant ;         // courant constraint 
-      ar &  m_dthydro ;           // volume change constraint 
-      ar &   m_cycle ;             // iteration count for simulation 
-      ar &  m_dtfixed ;           // fixed time increment 
-      ar &  m_time ;              // current time 
-      ar &  m_deltatime ;         // variable time increment 
-      ar &  m_deltatimemultlb ;
-      ar &  m_deltatimemultub ;
-      ar &  m_dtmax ;             // maximum allowable time increment 
-      ar &  m_stoptime ;          // end time for simulation 
-
-
-      ar &   m_numRanks ;
-
-      ar & m_colLoc ;
-      ar & m_rowLoc ;
-      ar & m_planeLoc ;
-      ar & m_tp ;
-
-      ar & m_sizeX ;
-      ar & m_sizeY ;
-      ar & m_sizeZ ;
-      ar & m_numElem ;
-      ar & m_numNode ;
-
-      ar & m_maxPlaneSize ;
-      ar & m_maxEdgeSize ;
-
-      // // OMP hack 
-      // ar & *m_nodeElemStart ;
-      // for (int i = 0; i < m_numNode ; ++i)
-      // {
-      //    ar & m_nodeElemStart[i] ;
-      // }
-
-
-      // ar & *m_nodeElemCornerList ;
-      // for (int i = 0; i < m_nodeElemStart[m_numNode]; ++i)
-      // {
-      //    ar & m_nodeElemCornerList[i];
-      // }
-
-      // Used in setup
-      ar & m_rowMin;
-      ar & m_rowMax;
-      ar & m_colMin;
-      ar & m_colMax;
-      ar & m_planeMin;
-      ar & m_planeMax;
-
-   }
-
    void BuildMesh(Int_t nx, Int_t edgeNodes, Int_t edgeElems);
    void SetupThreadSupportStructures();
    void CreateRegionIndexSets(Int_t nreg, Int_t balance);
@@ -636,17 +423,9 @@ class Domain {
    void SetupElementConnectivities(Int_t edgeElems);
    void SetupBoundaryConditions(Int_t edgeElems);
 
-   //Test Boost
-   // int test;
-   // std::string street1;
-   // std::string street2;
-   // std::vector<double> test_vector;
-
    //
    // IMPLEMENTATION
    //
-   
-
 
    /* Node-centered */
    std::vector<Real_t> m_x ;  /* coordinates */

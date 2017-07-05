@@ -162,8 +162,6 @@ Additional BSD Notice
 
 #include "lulesh.h"
 
-#include <sstream>
-
 
 /*********************************/
 /* Data structure implementation */
@@ -2685,32 +2683,6 @@ void LagrangeLeapFrog(Domain& domain)
 #endif   
 }
 
-/******************************************/
-/******************************************/
-/******************************************/
-// std::stringstream save_locDom(const Domain &s){
-//     // make an archive
-//     // std::ofstream ofs(filename);
-
-//     std::stringstream ss;
-//     boost::archive::text_oarchive oa(ss);
-//     oa << s;
-//     return ss;
-// }
-
-void restore_locDom(Domain &s, const char * filename)
-{
-    // open the archive
-    std::ifstream ifs(filename);
-    boost::archive::text_iarchive ia(ifs);
-
-    // restore the schedule from the archive
-    ia >> s;
-}
-/******************************************/
-/******************************************/
-/******************************************/
-
 
 /******************************************/
 
@@ -2759,9 +2731,7 @@ int main(int argc, char *argv[])
       printf("To print out progress, use -p\n");
       printf("To write an output file for VisIt, use -v\n");
       printf("See help (-h) for more options\n\n");
-      fflush(stdout);
    }
-
 
    // Set up the mesh and decompose. Assumes regular cubes for now
    Int_t col, row, plane, side;
@@ -2798,42 +2768,14 @@ int main(int argc, char *argv[])
 //debug to see region sizes
 //   for(Int_t i = 0; i < locDom->numReg(); i++)
 //      std::cout << "region" << i + 1<< "size" << locDom->regElemSize(i) <<std::endl;
+   while((locDom->time() < locDom->stoptime()) && (locDom->cycle() < opts.its)) {
 
-   char filename_ser[256] = "";
-   sprintf(filename_ser, "files_serialized/rank#%d.ser", myRank);
-
-   fprintf(stderr, "Ecriture dans %s...\n", filename_ser);
-   fflush(stderr);
-   // std::stringstream serialized_loc_dom = save_locDom(*locDom);
-    std::stringstream ss;
-    boost::archive::text_oarchive oa(ss);
-    oa << locDom;
-
-   // MPI_Abort(MPI_COMM_WORLD,0);
-
-   fprintf(stderr, "Lecture de %s\n", filename_ser);
-   fflush(stderr);
-   Domain *new_locDom;
-   // restore_locDom(*new_locDom, serialized_loc_dom);
-
-   boost::archive::text_iarchive ia(ss);
-   ia >> new_locDom;
-
-   fprintf(stderr, "Fin restauration.\n");
-   fflush(stderr);
-
-
-   new_locDom = locDom;
-
-
-   while((new_locDom->time() < new_locDom->stoptime()) && (new_locDom->cycle() < opts.its)) {
-
-      TimeIncrement(*new_locDom) ;
-      LagrangeLeapFrog(*new_locDom) ;
+      TimeIncrement(*locDom) ;
+      LagrangeLeapFrog(*locDom) ;
 
       if ((opts.showProg != 0) && (opts.quiet == 0) && (myRank == 0)) {
          printf("cycle = %d, time = %e, dt=%e\n",
-                new_locDom->cycle(), double(new_locDom->time()), double(new_locDom->deltatime()) ) ;
+                locDom->cycle(), double(locDom->time()), double(locDom->deltatime()) ) ;
       }
    }
 
@@ -2856,11 +2798,11 @@ int main(int argc, char *argv[])
 
    // Write out final viz file */
    if (opts.viz) {
-      DumpToVisit(*new_locDom, opts.numFiles, myRank, numRanks) ;
+      DumpToVisit(*locDom, opts.numFiles, myRank, numRanks) ;
    }
    
    if ((myRank == 0) && (opts.quiet == 0)) {
-      VerifyAndWriteFinalOutput(elapsed_timeG, *new_locDom, opts.nx, numRanks);
+      VerifyAndWriteFinalOutput(elapsed_timeG, *locDom, opts.nx, numRanks);
    }
 
 #if USE_MPI

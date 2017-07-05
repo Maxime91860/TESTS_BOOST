@@ -1,12 +1,11 @@
-//Serialization of vectors
+//Serialization of pointers
+//05/07/2017 - Maxime Kermarquer
 
-#include <vector>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
-#include <boost/serialization/vector.hpp>
 #include <iostream>
 
-#include <fstream>
+// #include <fstream>
 #include <sstream>
 std::stringstream ss;
 
@@ -68,14 +67,19 @@ class A
 		void serialize(Archive &ar, const unsigned int version){
 			ar & m_size;
 			
+			//Allocation for the deserialization
 			if(Archive::is_loading::value){
 				tab_1D = new int[m_size];
 			}
+
 			// for (int i = 0; i < m_size; i++){
 			// 	ar & tab_1D[i];
 			// }
+			
+			// This statement is equivalent to the commented loop above
 			ar & boost::serialization::make_array <int> (tab_1D, m_size);
 
+			//Allocation for the deserialization
 			if(Archive::is_loading::value){
 				tab_2D = new int*[m_size];
 				for (int i = 0; i < m_size; i++){
@@ -94,10 +98,10 @@ class A
 void save ()
 {
 	
-	std::ofstream file("pointers.ser");
-	boost::archive::text_oarchive oa(file);
+	// std::ofstream file("pointers.ser");
+	// boost::archive::text_oarchive oa(file);
 
-	// boost::archive::text_oarchive oa(ss);
+	boost::archive::text_oarchive oa(ss);
 
 	A *a1 = new A(5);
 	std::cout << "---- a1 ----\n";
@@ -110,10 +114,10 @@ void save ()
 
 void load ()
 {
-	std::ifstream file("pointers.ser");
-	boost::archive::text_iarchive ia(file);
+	// std::ifstream file("pointers.ser");
+	// boost::archive::text_iarchive ia(file);
 
-	// boost::archive::text_iarchive ia(ss);
+	boost::archive::text_iarchive ia(ss);
 
 	A *a2;
 	ia >> a2;

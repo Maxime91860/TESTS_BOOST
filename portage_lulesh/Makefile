@@ -5,19 +5,12 @@ SHELL = /bin/sh
 
 LULESH_EXEC = lulesh2.0
 
-#MPI_INC = /opt/local/include/openmpi
-#MPI_LIB = /opt/local/lib
+MPI_INC = /opt/local/include/openmpi
+MPI_LIB = /opt/local/lib
 
-#SERCXX = g++ -DUSE_MPI=0
-SERCXX = mpc_cxx -DUSE_MPI=0
-#SERCXX = icc -DUSE_MPI=0
-
-#MPICXX = mpig++ -DUSE_MPI=1
-# MPICXX = mpc_cxx -DUSE_MPI=1
-MPICXX = mpic++ -DUSE_MPI=1
-
+SERCXX = g++ -DUSE_MPI=0
+MPICXX = mpig++ -DUSE_MPI=1
 CXX = $(MPICXX)
-#CXX = $(SERCXX)
 
 SOURCES2.0 = \
 	lulesh.cc \
@@ -28,15 +21,8 @@ SOURCES2.0 = \
 OBJECTS2.0 = $(SOURCES2.0:.cc=.o)
 
 #Default build suggestions with OpenMP for g++
-CXXFLAGS = -O3 -fopenmp -I. -Wall
-#CXXFLAGS = -openmp -I. -Wall
-#CXXFLAGS = -I. -Wall
-#CXXFLAGS = -O3 -I. -Wall
-
-LDFLAGS = -O3 -fopenmp
-#LDFLAGS = -openmp
-#LDFLAGS =  -O3
-#LDFLAGS = 
+CXXFLAGS = -g -O3 -fopenmp -I. -Wall
+LDFLAGS = -g -O3 -fopenmp
 
 #Below are reasonable default flags for a serial build
 #CXXFLAGS = -g -O3 -I. -Wall
@@ -56,34 +42,20 @@ LDFLAGS = -O3 -fopenmp
 #CXXFLAGS = -g -DVIZ_MESH -I${SILO_INCDIR} -Wall -Wno-pragmas
 #LDFLAGS = -g -L${SILO_LIBDIR} -Wl,-rpath -Wl,${SILO_LIBDIR} -lsiloh5 -lhdf5
 
-#########################
-#### TESTS LIB BOOST ####
-#########################
-BOOST_PATH=/ccc/products/boost-1.59.0/intel
-BOOST_IFLAG=-I$(BOOST_PATH)/include
-BOOST_LDFLAG=-L$(BOOST_PATH)/lib -lboost_serialization
-BOOST_FLAGS=$(BOOST_IFLAG) $(BOOST_LDFLAG)
-
-
-
 .cc.o: lulesh.h
 	@echo "Building $<"
-	$(CXX) -c $(CXXFLAGS) $(BOOST_FLAGS) -o $@  $<
+	$(CXX) -c $(CXXFLAGS) -o $@  $<
 
 all: $(LULESH_EXEC)
 
 lulesh2.0: $(OBJECTS2.0)
 	@echo "Linking"
-	$(CXX) $(OBJECTS2.0) $(LDFLAGS) $(BOOST_LDFLAG) -lm -o $@
+	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
 
 clean:
 	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC)
-	/bin/rm -rf *.dSYM files_serialized/*
+	/bin/rm -rf *.dSYM
 
 tar: clean
 	cd .. ; tar cvf lulesh-2.0.tar LULESH-2.0 ; mv lulesh-2.0.tar LULESH-2.0
 
-run :
-	ccc_mprun -N1 -n1 -x -psandy ./lulesh2.0 -s 10 -p
-
-.PHONY : lulesh2.0
