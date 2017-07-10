@@ -162,7 +162,15 @@ Additional BSD Notice
 
 #include "lulesh.h"
 
+//********************
+// Boost Serialization
+//********************
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 
+#include <sstream>
+#include <fstream>
+std::stringstream ss;
 /*********************************/
 /* Data structure implementation */
 /*********************************/
@@ -2683,6 +2691,60 @@ void LagrangeLeapFrog(Domain& domain)
 #endif   
 }
 
+void save (Domain *dom_saved, int myRank){
+  //Tests Serialization
+  // boost::archive::text_oarchive oa(ss);
+  char filename[256];
+  snprintf(filename, 256, "lulesh#%d.ser", myRank);
+  std::ofstream file_output(filename);
+  boost::archive::text_oarchive oa(file_output);
+
+
+  oa << dom_saved;
+  file_output.close();
+
+  //Affichage Requetes MPI
+  // std::cout << " --- MPI_Request dom_saved --- \n";
+  // std::cout << "\t recvRequest\n";
+  // for (int i = 0; i < 26; ++i)
+  // {
+  //   std::cout << dom_saved->recvRequest[i] << ", ";
+  // }
+  // std::cout << "\n\t sendRequest\n";
+  // for (int i = 0; i < 26; ++i)
+  // {
+  //   std::cout << dom_saved->sendRequest[i] << ", ";
+  // }
+  // std::cout << "\n";
+
+  // std::cout << ss.str() << ", \n";
+}
+
+void load (Domain *dom_loaded, int myRank){
+
+  // std::cout <<  std::hex << ss.rdbuf() << ", \n";
+  // boost::archive::text_iarchive ia(ss);
+  char filename[256];
+  snprintf(filename, 256, "lulesh#%d.ser", myRank);
+  std::ifstream file_input(filename);
+  boost::archive::text_iarchive ia(file_input);
+
+  ia >> dom_loaded;
+
+  //Affichage Requetes MPI
+  // std::cout << " --- MPI_Request dom_loaded --- \n";
+  // std::cout << "\t recvRequest\n";
+  // for (int i = 0; i < 26; ++i)
+  // {
+  //   std::cout << dom_loaded->recvRequest[i] << ", ";
+  // }
+  // std::cout << "\n\t sendRequest\n";
+  // for (int i = 0; i < 26; ++i)
+  // {
+  //   std::cout << dom_loaded->sendRequest[i] << ", ";
+  // }
+  // std::cout << "\n";
+}
 
 /******************************************/
 
@@ -2766,8 +2828,29 @@ int main(int argc, char *argv[])
    gettimeofday(&start, NULL) ;
 #endif
 //debug to see region sizes
-//   for(Int_t i = 0; i < locDom->numReg(); i++)
-//      std::cout << "region" << i + 1<< "size" << locDom->regElemSize(i) <<std::endl;
+  // for(Int_t i = 0; i < locDom->numReg(); i++)
+  //    std::cout << "region" << i + 1<< "size" << locDom->regElemSize(i) <<std::endl;
+
+
+//---------------------------------------------------------------------------------------------------------------------//
+
+  Domain *locDom2;
+  save(locDom, myRank);
+  // load(locDom2, myRank);
+  char filename[256];
+  snprintf(filename, 256, "lulesh#%d.ser", myRank);
+  std::ifstream file_input(filename);
+  boost::archive::text_iarchive ia(file_input);
+
+  ia >> locDom2;
+
+  locDom = locDom2;
+  std::cout << "petit test locDom = " << locDom->p(5) << "\n"; 
+  std::cout << "petit test locDom2 = " << locDom2->p(5) << "\n"; 
+
+
+//---------------------------------------------------------------------------------------------------------------------//
+std::cout << "-- before main loop --\n";
    while((locDom->time() < locDom->stoptime()) && (locDom->cycle() < opts.its)) {
 
       TimeIncrement(*locDom) ;

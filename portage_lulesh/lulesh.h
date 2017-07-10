@@ -24,6 +24,13 @@
 #include <math.h>
 #include <vector>
 
+//********************
+// Boost Serialization
+//********************
+#include <boost/serialization/vector.hpp>
+#include <iostream>
+#include <fstream>
+
 //**************************************************
 // Allow flexibility for arithmetic representations 
 //**************************************************
@@ -132,6 +139,27 @@ class Domain {
    Domain(Int_t numRanks, Index_t colLoc,
           Index_t rowLoc, Index_t planeLoc,
           Index_t nx, Int_t tp, Int_t nr, Int_t balance, Int_t cost);
+
+   Domain ()   :
+   m_e_cut(Real_t(1.0e-7)),
+   m_p_cut(Real_t(1.0e-7)),
+   m_q_cut(Real_t(1.0e-7)),
+   m_v_cut(Real_t(1.0e-10)),
+   m_u_cut(Real_t(1.0e-7)),
+   m_hgcoef(Real_t(3.0)),
+   m_ss4o3(Real_t(4.0)/Real_t(3.0)),
+   m_qstop(Real_t(1.0e+12)),
+   m_monoq_max_slope(Real_t(1.0)),
+   m_monoq_limiter_mult(Real_t(2.0)),
+   m_qlc_monoq(Real_t(0.5)),
+   m_qqc_monoq(Real_t(2.0)/Real_t(3.0)),
+   m_qqc(Real_t(2.0)),
+   m_eosvmax(Real_t(1.0e+9)),
+   m_eosvmin(Real_t(1.0e-9)),
+   m_pmin(Real_t(0.)),
+   m_emin(Real_t(-1.0e+15)),
+   m_dvovmax(Real_t(0.1)),
+   m_refdens(Real_t(1.0)) {};
 
    //
    // ALLOCATION
@@ -423,6 +451,497 @@ class Domain {
    void SetupElementConnectivities(Int_t edgeElems);
    void SetupBoundaryConditions(Int_t edgeElems);
 
+   friend class boost::serialization::access;
+   template <typename Archive>
+   void serialize(Archive &ar, const unsigned int version){
+
+      std::string filename;
+      //Check de/serialization
+      if(Archive::is_loading::value){
+         std::cout << "\n-------------------------\n";
+         std::cout << "Start of deserialization.\n";
+         std::cout << "-------------------------\n\n\n";
+          filename = "locDom_deserialized";
+      }
+      else {
+         std::cout << "\n-------------------------\n";
+         std::cout << "Start of serialization.\n";
+         std::cout << "-------------------------\n\n";
+         filename = "locDom_serialized";
+      }
+
+      std::ofstream file_output(filename.c_str());
+
+      ar & m_x ;  /* coordinates */
+      ar & m_y;
+      ar & m_z;
+
+      // if(Archive::is_saving::value){
+      //    file_output << "--- coordinates saved---\n" << " sizeof (m_x,m_y,m_z) = (" << m_x.size()  << "," << m_y.size() << "," << m_z.size() << ")\n";
+      //    for (int i = 0; i < (int) m_x.size(); ++i)
+      //    {
+      //       file_output << m_x[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      // if(Archive::is_loading::value){
+      //    file_output << "--- coordinates loaded---\n" << " sizeof (m_x,m_y,m_z) = (" << m_x.size()  << "," << m_y.size() << "," << m_z.size() << ")\n";
+      //    for (int i = 0; i < (int) m_x.size(); ++i)
+      //    {
+      //       file_output << m_x[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      ar & m_xd ; /* velocities */
+      ar & m_yd ;
+      ar & m_zd ;
+
+      // if(Archive::is_saving::value){
+      //    file_output << "--- velocities saved---\n" << " sizeof (m_xd,m_yd,m_zd) = (" << m_xd.size()  << "," << m_yd.size() << "," << m_zd.size() << ")\n";
+      //    for (int i = 0; i < (int) m_xd.size(); ++i)
+      //    {
+      //       file_output << m_xd[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      // if(Archive::is_loading::value){
+      //    file_output << "--- velocities loaded---\n" << " sizeof (m_xd,m_yd,m_zd) = (" << m_xd.size()  << "," << m_yd.size() << "," << m_zd.size() << ")\n";
+      //    for (int i = 0; i < (int) m_xd.size(); ++i)
+      //    {
+      //       file_output << m_xd[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      ar & m_xdd ; /* accelerations */
+      ar & m_ydd ;
+      ar & m_zdd ;
+
+      // if(Archive::is_saving::value){
+      //    file_output << "--- accelerations saved---\n" << " sizeof (m_xdd,m_ydd,m_zdd) = (" << m_xdd.size()  << "," << m_ydd.size() << "," << m_zdd.size() << ")\n";
+      //    for (int i = 0; i < (int) m_xdd.size(); ++i)
+      //    {
+      //       file_output << m_xdd[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      // if(Archive::is_loading::value){
+      //    file_output << "--- accelerations loaded---\n" << " sizeof (m_xdd,m_ydd,m_zdd) = (" << m_xdd.size()  << "," << m_ydd.size() << "," << m_zdd.size() << ")\n";
+      //    for (int i = 0; i < (int) m_xdd.size(); ++i)
+      //    {
+      //       file_output << m_xdd[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      ar & m_fx ;  /* forces */
+      ar & m_fy ;
+      ar & m_fz ;
+
+      // if(Archive::is_saving::value){
+      //    file_output << "--- forces saved---\n" << " sizeof (m_fx,m_fy,m_fz) = (" << m_fx.size()  << "," << m_fy.size() << "," << m_fz.size() << ")\n";
+      //    for (int i = 0; i < (int) m_fx.size(); ++i)
+      //    {
+      //       file_output << m_fx[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      // if(Archive::is_loading::value){
+      //    file_output << "--- forces loaded---\n" << " sizeof (m_fx,m_fy,m_fz) = (" << m_fx.size()  << "," << m_fy.size() << "," << m_fz.size() << ")\n";
+      //    for (int i = 0; i < (int) m_fx.size(); ++i)
+      //    {
+      //       file_output << m_fx[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      ar & m_nodalMass ;  /* mass */
+
+      // if(Archive::is_saving::value){
+      //    file_output << "--- mass saved---\n" << " sizeof (m_nodalMass) = (" << m_nodalMass.size() << ")\n";
+      //    for (int i = 0; i < (int) m_nodalMass.size(); ++i)
+      //    {
+      //       file_output << m_fx[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      // if(Archive::is_loading::value){
+      //    file_output << "--- mass loaded---\n" << " sizeof (m_nodalMass) = (" << m_nodalMass.size() << ")\n";
+      //    for (int i = 0; i < (int) m_nodalMass.size(); ++i)
+      //    {
+      //       file_output << m_fx[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      ar & m_symmX ;  /* symmetry plane nodesets */
+      ar & m_symmY ;
+      ar & m_symmZ ;
+
+      // if(Archive::is_saving::value){
+      //    file_output << "--- symmetry plane nodesets saved---\n" << " sizeof (m_symmX,m_symmY,m_symmZ) = (" << m_symmX.size()  << "," << m_symmY.size() << "," << m_symmZ.size() << ")\n";
+      //    for (int i = 0; i < (int) m_symmX.size(); ++i)
+      //    {
+      //       file_output << m_symmX[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      // if(Archive::is_loading::value){
+      //    file_output << "--- symmetry plane nodesets loaded---\n" << " sizeof (m_symmX,m_symmY,m_symmZ) = (" << m_symmX.size()  << "," << m_symmY.size() << "," << m_symmZ.size() << ")\n";
+      //    for (int i = 0; i < (int) m_symmX.size(); ++i)
+      //    {
+      //       file_output << m_symmX[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      // Element-centered
+
+      ar & m_numRanks ;
+      ar & m_colLoc ;
+      ar & m_rowLoc ;
+      ar & m_planeLoc ;
+      ar & m_tp ;
+
+      ar & m_sizeX ;
+      ar & m_sizeY ;
+      ar & m_sizeZ ;
+      ar & m_numElem ;
+      ar & m_numNode ;
+
+      ar & m_maxPlaneSize ;
+      ar & m_maxEdgeSize ;
+
+      if(Archive::is_saving::value){
+         file_output << "--- Problem size information saved---\n";
+      }
+      else {
+         file_output << "--- Problem size information loaded---\n";  
+      }
+      file_output << "m_sizeX = " << m_sizeX << ", m_sizeY = " << m_sizeY << ", m_sizeZ = " << m_sizeZ << "\n";
+      file_output << "m_numElem = " << m_numElem << ", m_numNode = " << m_numNode << "\n";
+      file_output << "m_numRanks = " << m_numRanks << ", m_colLoc = " << m_colLoc << ", m_planeLoc = " << m_planeLoc << ", m_tp = " << m_tp << "\n";
+      file_output << "m_maxPlaneSize = " << m_maxPlaneSize << ", m_maxEdgeSize = " << m_maxEdgeSize << "\n";
+
+      // Region information
+      ar &  m_numReg ;
+      ar &  m_cost; //imbalance cost
+
+
+
+      if (Archive::is_saving::value){
+         file_output << "--- Region information saved---\n" << "m_numReg = " << m_numReg << ", m_cost = " << m_cost << ", m_numElem = " << m_numElem  << "\n";
+      }
+      if (Archive::is_loading::value){
+         file_output << "--- Region information loaded---\n" << "m_numReg = " << m_numReg << ", m_cost = " << m_cost << ", m_numElem = " << m_numElem  << "\n";
+      }
+      
+      if(Archive::is_loading::value){
+         m_regElemSize = new Index_t[m_numReg];
+      }
+      ar & boost::serialization::make_array <Index_t> (m_regElemSize, m_numReg); // Size of region sets
+
+      if(Archive::is_loading::value){
+         m_regNumList = new Index_t[m_numElem];
+      }
+      ar & boost::serialization::make_array <Index_t> (m_regNumList, m_numElem); // Region number per domain element
+
+      if(Archive::is_loading::value){
+         m_regElemlist = new Index_t*[m_numReg];
+         for (int i = 0; i < m_numReg; i++){
+            m_regElemlist[i] = new Index_t[m_regElemSize[i]];
+         }
+      }
+
+      for (int i = 0; i < m_numReg; i++){
+         ar & boost::serialization::make_array <Index_t> (m_regElemlist[i], m_regElemSize[i]);
+      }
+
+      // if (Archive::is_saving::value){
+      //    file_output << "--- Pointers saved---\n" << std::hex << "m_regElemSize = " << m_regElemSize << ", m_regNumList = " << m_regNumList << "\n";
+      //    file_output << std::dec;
+      //    file_output << "m_regElemSize = \n";
+      //    for (int i = 0; i < m_numReg; ++i)
+      //    {
+      //       file_output << m_regElemSize[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      //    file_output << "m_regNumList = \n";
+      //    for (int i = 0; i < m_numElem; ++i)
+      //    {
+      //       file_output << m_regNumList[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      // if (Archive::is_loading::value){
+      //    file_output << "--- Pointers loaded---\n" << std::hex << "m_regElemSize = " << m_regElemSize << ", m_regNumList = " << m_regNumList << "\n";
+      //    file_output << std::dec;
+      //    file_output << "m_regElemSize = \n";
+      //    for (int i = 0; i < m_numReg; ++i)
+      //    {
+      //       file_output << m_regElemSize[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      //    file_output << "m_regNumList = \n";
+      //    for (int i = 0; i < m_numElem; ++i)
+      //    {
+      //       file_output << m_regNumList[i] << ", ";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      // if (Archive::is_saving::value){
+      //    file_output << "--- Deep pointer saved---" << std::hex << "m_regElemlist = " << m_regElemlist << "\n";
+      //    for (int i = 0; i < m_numReg; ++i)
+      //    {
+      //       file_output << "m_regElemlist[" << i << "] = " << m_regElemlist[i] << ", ";
+      //    }
+      //    file_output << std::dec << "\nregElemlist contents = ";
+      //    for (int i = 0; i < m_numReg; ++i)
+      //    {
+      //       for (int j = 0; j < m_regElemSize[i]; ++j)
+      //       {
+      //          file_output << m_regElemlist[i][j] << ", ";
+      //       }
+      //       file_output << "\n";
+      //    }
+      //    file_output << "\n";
+      // }
+
+      // if (Archive::is_loading::value){
+      //    file_output << "--- Deep pointer loaded---" << std::hex << "m_regElemlist = " << m_regElemlist << "\n";
+      //    for (int i = 0; i < m_numReg; ++i)
+      //    {
+      //       file_output << "m_regElemlist[" << i << "] = " << m_regElemlist[i] << ", ";
+      //    }
+      //    file_output << std::dec << "\nregElemlist contents = ";
+      //    for (int i = 0; i < m_numReg; ++i)
+      //    {
+      //       for (int j = 0; j < m_regElemSize[i]; ++j)
+      //       {
+      //          file_output << m_regElemlist[i][j] << ", ";
+      //       }
+      //       file_output << "\n";
+      //    }
+      //    file_output << "\n";
+      // }
+
+
+      ar &  m_nodelist ;     /* elemToNode connectivity */
+
+
+
+      ar & m_lxim ;  /* element connectivity across each face */
+      ar & m_lxip ;
+      ar & m_letam ;
+      ar & m_letap ;
+      ar & m_lzetam ;
+      ar & m_lzetap ;
+
+      ar & m_elemBC ;  /* symmetry/free-surface flags for each elem face */
+
+      ar & m_dxx ;  /* principal strains -- temporary */
+      ar & m_dyy ;
+      ar & m_dzz ;
+
+      ar & m_delv_xi ;    /* velocity gradient -- temporary */
+      ar & m_delv_eta ;
+      ar & m_delv_zeta ;
+
+      ar & m_delx_xi ;    /* coordinate gradient -- temporary */
+      ar & m_delx_eta ;
+      ar & m_delx_zeta ;
+
+      ar & m_e ;   /* energy */
+
+      ar & m_p ;   /* pressure */
+      ar & m_q ;   /* q */
+      ar & m_ql ;  /* linear term for q */
+      ar & m_qq ;  /* quadratic term for q */
+
+      ar & m_v ;     /* relative volume */
+      ar & m_volo ;  /* reference volume */
+      ar & m_vnew ;  /* new relative volume -- temporary */
+      ar & m_delv ;  /* m_vnew - m_v */
+      ar & m_vdov ;  /* volume derivative over volume */
+
+      ar & m_arealg ;  /* characteristic length of an element */
+
+      ar & m_ss ;      /* "sound speed" */
+
+      ar & m_elemMass ;  /* mass */
+
+      // Cutoffs (treat as constants)
+      ar & const_cast<Real_t &>(m_e_cut);
+      ar & const_cast<Real_t &>(m_p_cut);
+      ar & const_cast<Real_t &>(m_q_cut);
+      ar & const_cast<Real_t &>(m_v_cut);
+      ar & const_cast<Real_t &>(m_u_cut);
+
+      // Other constants (usually setable, but hardcoded in this proxy app)
+      ar & const_cast<Real_t &>(m_hgcoef);
+      ar & const_cast<Real_t &>(m_ss4o3);
+      ar & const_cast<Real_t &>(m_qstop);
+      ar & const_cast<Real_t &>(m_monoq_max_slope);
+      ar & const_cast<Real_t &>(m_monoq_limiter_mult);  
+      ar & const_cast<Real_t &>(m_qlc_monoq);
+      ar & const_cast<Real_t &>(m_qqc_monoq);
+      ar & const_cast<Real_t &>(m_qqc);
+      ar & const_cast<Real_t &>(m_eosvmax);
+      ar & const_cast<Real_t &>(m_eosvmin);
+      ar & const_cast<Real_t &>(m_pmin);
+      ar & const_cast<Real_t &>(m_emin);
+      ar & const_cast<Real_t &>(m_dvovmax);
+      ar & const_cast<Real_t &>(m_refdens);
+
+      if(Archive::is_saving::value){
+         file_output << "--- constants saved---\n";
+      }
+      else {
+         file_output << "--- constants loaded---\n";  
+      }
+      file_output << "m_e_cut = " << m_e_cut << ", m_p_cut = " << m_p_cut << ", m_q_cut = " << m_q_cut << ", m_v_cut = " << m_v_cut << ", m_u_cut = " << m_u_cut << "\n";
+      file_output << m_hgcoef << " " << m_ss4o3 << " " << m_qstop << " " << m_monoq_max_slope << " " << m_monoq_limiter_mult << " " << m_qlc_monoq ;
+      file_output << m_qqc_monoq << " " << m_qqc << " " << m_eosvmax << " " <<  m_eosvmin << " " << m_pmin << " " <<  m_emin << " " << m_dvovmax << " " << m_refdens << "\n";
+
+      // Variables to keep track of timestep, simulation time, and cycle
+      ar &  m_dtcourant ;         // courant constraint 
+      ar &  m_dthydro ;           // volume change constraint 
+      ar &   m_cycle ;             // iteration count for simulation 
+      ar &  m_dtfixed ;           // fixed time increment 
+      ar &  m_time ;              // current time 
+      ar &  m_deltatime ;         // variable time increment 
+      ar &  m_deltatimemultlb ;
+      ar &  m_deltatimemultub ;
+      ar &  m_dtmax ;             // maximum allowable time increment 
+      ar &  m_stoptime ;          // end time for simulation 
+
+      if(Archive::is_saving::value){
+         file_output << "--- variable to keep track of timestep, ... saved---\n";
+      }
+      else {
+         file_output << "--- variable to keep track of timestep, ... loaded---\n";  
+      }
+
+      file_output << m_dtcourant << " " << m_dthydro << " " << m_cycle << " " << m_dtfixed << " " << m_deltatime << " " << m_deltatimemultlb << " " << m_deltatimemultub << " " << m_dtmax << " " << m_stoptime;
+
+      // OMP hack 
+      if(Archive::is_loading::value){
+         m_nodeElemStart = new Index_t[m_numNode+1];
+      }
+      ar & boost::serialization::make_array <Index_t> (m_nodeElemStart, m_numNode+1);
+
+      if(Archive::is_loading::value){
+         m_nodeElemCornerList = new Index_t[m_nodeElemStart[m_numNode]];
+      }
+      ar & boost::serialization::make_array <Index_t> (m_nodeElemCornerList, m_nodeElemStart[m_numNode]);
+
+      if(Archive::is_saving::value){
+         file_output << "\n--- OMP hack saved---\n";
+      }
+      else {
+         file_output << "\n--- OMP hack loaded---\n";  
+      }
+      file_output << "m_nodeElemStart = " << std::hex << m_nodeElemStart << ", m_nodeElemCornerList = " << m_nodeElemCornerList << "\n";
+
+      file_output << std::dec <<  "m_nodeElemStart contents = \n";
+      for (int i = 0; i < m_numNode; ++i)     
+      {
+         file_output << m_nodeElemStart[i] << " ";
+      }
+      file_output << "\nm_nodeElemCornerList contents = \n";
+      for (int i = 0; i < m_numNode; ++i)
+      {
+         file_output << m_nodeElemCornerList[i] << " ";
+      }
+      file_output << "\n";
+
+
+
+      // Used in setup
+      ar & m_rowMin;
+      ar & m_rowMax;
+      ar & m_colMin;
+      ar & m_colMax;
+      ar & m_planeMin;
+      ar & m_planeMax; 
+
+#if USE_MPI   
+     // account for face communication 
+     Index_t comBufSize =
+       (m_rowMin + m_rowMax + m_colMin + m_colMax + m_planeMin + m_planeMax) *
+       m_maxPlaneSize * MAX_FIELDS_PER_MPI_COMM ;
+
+     // account for edge communication 
+     comBufSize +=
+       ((m_rowMin & m_colMin) + (m_rowMin & m_planeMin) + (m_colMin & m_planeMin) +
+        (m_rowMax & m_colMax) + (m_rowMax & m_planeMax) + (m_colMax & m_planeMax) +
+        (m_rowMax & m_colMin) + (m_rowMin & m_planeMax) + (m_colMin & m_planeMax) +
+        (m_rowMin & m_colMax) + (m_rowMax & m_planeMin) + (m_colMax & m_planeMin)) *
+       m_maxEdgeSize * MAX_FIELDS_PER_MPI_COMM ;
+
+     // account for corner communication 
+     // factor of 16 is so each buffer has its own cache line 
+     comBufSize += ((m_rowMin & m_colMin & m_planeMin) +
+          (m_rowMin & m_colMin & m_planeMax) +
+          (m_rowMin & m_colMax & m_planeMin) +
+          (m_rowMin & m_colMax & m_planeMax) +
+          (m_rowMax & m_colMin & m_planeMin) +
+          (m_rowMax & m_colMin & m_planeMax) +
+          (m_rowMax & m_colMax & m_planeMin) +
+          (m_rowMax & m_colMax & m_planeMax)) * CACHE_COHERENCE_PAD_REAL ;
+
+
+      // Communication Work space 
+      if(Archive::is_loading::value){
+         commDataSend = new Real_t[comBufSize];
+         commDataRecv = new Real_t[comBufSize];
+      }
+      ar & boost::serialization::make_array <Real_t> (commDataRecv,comBufSize);
+      ar & boost::serialization::make_array <Real_t> (commDataSend,comBufSize);
+      
+      // Maximum number of block neighbors 
+      // if(Archive::is_loading::value){
+      //    recvRequest = new MPI_Request[26]; // 6 faces + 12 edges + 8 corners 
+      // }
+      // ar & boost::serialization::make_array <MPI_Request> (recvRequest,26);
+
+      // if(Archive::is_loading::value){
+      //    sendRequest = new MPI_Request[26]; // 6 faces + 12 edges + 8 corners 
+      // }
+      // ar & boost::serialization::make_array <MPI_Request> (sendRequest,26);
+      // ar.register_type(static_cast<MPI_Request>(NULL));
+      // for (int i = 0; i < 26; i++){
+      //    ar & recvRequest[i];
+      // }
+      // for (int i = 0; i < 26; i++){
+      //    ar & sendRequest[i];
+      // }
+
+#endif
+
+      //Check de/serialization
+      if(Archive::is_loading::value){
+         std::cout << "\n-------------------------\n";
+         std::cout << "Deserialization finished.\n";
+         std::cout << "-------------------------\n";
+      }
+      else {
+         std::cout << "\n-------------------------\n";
+         std::cout << "Serialization finished.\n";
+         std::cout << "-------------------------\n\n";
+      }
+      file_output.close();
+   }
+
    //
    // IMPLEMENTATION
    //
@@ -450,6 +969,7 @@ class Domain {
    std::vector<Index_t> m_symmY ;
    std::vector<Index_t> m_symmZ ;
 
+// 20 - OK
    // Element-centered
 
    // Region information
@@ -488,7 +1008,7 @@ class Domain {
    std::vector<Real_t> m_q ;   /* q */
    std::vector<Real_t> m_ql ;  /* linear term for q */
    std::vector<Real_t> m_qq ;  /* quadratic term for q */
-
+// 47
    std::vector<Real_t> m_v ;     /* relative volume */
    std::vector<Real_t> m_volo ;  /* reference volume */
    std::vector<Real_t> m_vnew ;  /* new relative volume -- temporary */
@@ -509,7 +1029,7 @@ class Domain {
    const Real_t  m_u_cut ;             // velocity tolerance 
 
    // Other constants (usually setable, but hardcoded in this proxy app)
-
+// 60
    const Real_t  m_hgcoef ;            // hourglass control 
    const Real_t  m_ss4o3 ;
    const Real_t  m_qstop ;             // excessive q indicator 
@@ -524,7 +1044,7 @@ class Domain {
    const Real_t  m_emin ;              // energy floor 
    const Real_t  m_dvovmax ;           // maximum allowable volume change 
    const Real_t  m_refdens ;           // reference density 
-
+// 74
    // Variables to keep track of timestep, simulation time, and cycle
    Real_t  m_dtcourant ;         // courant constraint 
    Real_t  m_dthydro ;           // volume change constraint 
@@ -544,7 +1064,7 @@ class Domain {
    Index_t m_rowLoc ;
    Index_t m_planeLoc ;
    Index_t m_tp ;
-
+// 89
    Index_t m_sizeX ;
    Index_t m_sizeY ;
    Index_t m_sizeZ ;
@@ -562,7 +1082,7 @@ class Domain {
    Index_t m_rowMin, m_rowMax;
    Index_t m_colMin, m_colMax;
    Index_t m_planeMin, m_planeMax ;
-
+// 101
 } ;
 
 typedef Real_t &(Domain::* Domain_member )(Index_t) ;

@@ -1,3 +1,4 @@
+
 #default build suggestion of MPI + OPENMP with gcc on Livermore machines you might have to change the compiler name
 
 SHELL = /bin/sh
@@ -8,8 +9,8 @@ LULESH_EXEC = lulesh2.0
 MPI_INC = /opt/local/include/openmpi
 MPI_LIB = /opt/local/lib
 
-SERCXX = g++ -DUSE_MPI=0
-MPICXX = mpig++ -DUSE_MPI=1
+SERCXX = c++ -DUSE_MPI=0
+MPICXX = mpic++ -DUSE_MPI=1
 CXX = $(MPICXX)
 
 SOURCES2.0 = \
@@ -42,20 +43,28 @@ LDFLAGS = -g -O3 -fopenmp
 #CXXFLAGS = -g -DVIZ_MESH -I${SILO_INCDIR} -Wall -Wno-pragmas
 #LDFLAGS = -g -L${SILO_LIBDIR} -Wl,-rpath -Wl,${SILO_LIBDIR} -lsiloh5 -lhdf5
 
+#Serialization with Boost library
+BOOST_PATH=/home/max/boost_1_64_0/install
+BOOST_IFLAG=-I$(BOOST_PATH)/include
+BOOST_LDFLAG=-L$(BOOST_PATH)/lib -lboost_serialization
+BOOST_FLAGS=$(BOOST_IFLAG) $(BOOST_LDFLAG)
+
 .cc.o: lulesh.h
 	@echo "Building $<"
-	$(CXX) -c $(CXXFLAGS) -o $@  $<
+	$(CXX) -c $(CXXFLAGS) $(BOOST_FLAGS) -o $@  $<
 
 all: $(LULESH_EXEC)
 
 lulesh2.0: $(OBJECTS2.0)
 	@echo "Linking"
-	$(CXX) $(OBJECTS2.0) $(LDFLAGS) -lm -o $@
+	$(CXX) $(OBJECTS2.0) $(LDFLAGS) $(BOOST_FLAGS) -lm -o $@
 
 clean:
 	/bin/rm -f *.o *~ $(OBJECTS) $(LULESH_EXEC)
-	/bin/rm -rf *.dSYM
+	/bin/rm -rf *.dSYM lulesh#*
 
 tar: clean
 	cd .. ; tar cvf lulesh-2.0.tar LULESH-2.0 ; mv lulesh-2.0.tar LULESH-2.0
 
+run : lulesh2.0
+	./lulesh2.0 -s 16 -p
