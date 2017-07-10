@@ -2720,16 +2720,19 @@ void save (Domain *dom_saved, int myRank){
   // std::cout << ss.str() << ", \n";
 }
 
-void load (Domain *dom_loaded, int myRank){
+Domain* load (int myRank){
 
   // std::cout <<  std::hex << ss.rdbuf() << ", \n";
   // boost::archive::text_iarchive ia(ss);
+  Domain *dom_loaded;
   char filename[256];
   snprintf(filename, 256, "lulesh#%d.ser", myRank);
   std::ifstream file_input(filename);
   boost::archive::text_iarchive ia(file_input);
 
   ia >> dom_loaded;
+
+  // std::cout << "petit test dom_loaded = " << dom_loaded->p(5) << "\n"; 
 
   //Affichage Requetes MPI
   // std::cout << " --- MPI_Request dom_loaded --- \n";
@@ -2744,6 +2747,7 @@ void load (Domain *dom_loaded, int myRank){
   //   std::cout << dom_loaded->sendRequest[i] << ", ";
   // }
   // std::cout << "\n";
+  return dom_loaded;
 }
 
 /******************************************/
@@ -2836,17 +2840,11 @@ int main(int argc, char *argv[])
 
   Domain *locDom2;
   save(locDom, myRank);
-  // load(locDom2, myRank);
-  char filename[256];
-  snprintf(filename, 256, "lulesh#%d.ser", myRank);
-  std::ifstream file_input(filename);
-  boost::archive::text_iarchive ia(file_input);
-
-  ia >> locDom2;
-
+  locDom2 = load(myRank);
+  
+  delete locDom;
+  //Echange d'instance
   locDom = locDom2;
-  std::cout << "petit test locDom = " << locDom->p(5) << "\n"; 
-  std::cout << "petit test locDom2 = " << locDom2->p(5) << "\n"; 
 
 
 //---------------------------------------------------------------------------------------------------------------------//
