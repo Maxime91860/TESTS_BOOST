@@ -5,7 +5,7 @@ BOOST_IFLAG=-I$(BOOST_PATH)/include
 BOOST_LDFLAG=-L$(BOOST_PATH)/lib -lboost_serialization
 BOOST_FLAGS=$(BOOST_IFLAG) $(BOOST_LDFLAG)
 
-all : ex1.exe ex2.exe ex3.exe ex4.exe ex5.exe ex6.exe ex7.exe ex8.exe ex9.exe
+all : ex1.exe ex2.exe ex3.exe ex4.exe ex5.exe ex6.exe ex7.exe ex8.exe ex9.exe ex10.exe
 
 %.exe : src/%.cpp
 	c++ $^ $(BOOST_FLAGS) -g -std=c++11 -o bin/$@

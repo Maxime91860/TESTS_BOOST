@@ -9,7 +9,6 @@
 #include <sstream>
 std::stringstream ss;
 
-#include <stdint.h>
 
 class A
 {
