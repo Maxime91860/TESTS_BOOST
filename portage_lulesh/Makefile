@@ -67,4 +67,4 @@ tar: clean
 	cd .. ; tar cvf lulesh-2.0.tar LULESH-2.0 ; mv lulesh-2.0.tar LULESH-2.0
 
 run : lulesh2.0
-	mpirun -n 1 ./lulesh2.0 -s 16 -p 
+	mpirun -n 1 ./lulesh2.0 -s 16

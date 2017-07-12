@@ -30,6 +30,9 @@
 #include <boost/serialization/vector.hpp>
 #include <iostream>
 #include <fstream>
+#if _OPENMP
+#include <omp.h>
+#endif
 
 //**************************************************
 // Allow flexibility for arithmetic representations 
@@ -456,16 +459,16 @@ class Domain {
    void serialize(Archive &ar, const unsigned int version){
 
       //Check de/serialization
-      if(Archive::is_loading::value){
-         std::cout << "\n-------------------------\n";
-         std::cout << "Start of deserialization.\n";
-         std::cout << "-------------------------\n\n\n";
-      }
-      else {
-         std::cout << "\n-------------------------\n";
-         std::cout << "Start of serialization.\n";
-         std::cout << "-------------------------\n\n";
-      }
+      // if(Archive::is_loading::value){
+      //    std::cout << "\n-------------------------\n";
+      //    std::cout << "Start of deserialization.\n";
+      //    std::cout << "-------------------------\n\n\n";
+      // }
+      // else {
+      //    std::cout << "\n-------------------------\n";
+      //    std::cout << "Start of serialization.\n";
+      //    std::cout << "-------------------------\n\n";
+      // }
 
       ar & m_x ;  /* coordinates */
       ar & m_y;
@@ -609,15 +612,26 @@ class Domain {
       ar &  m_stoptime ;          // end time for simulation 
 
       // OMP hack 
-      if(Archive::is_loading::value){
-         m_nodeElemStart = new Index_t[m_numNode+1];
-      }
-      ar & boost::serialization::make_array <Index_t> (m_nodeElemStart, m_numNode+1);
+      #if _OPENMP
+         Index_t numthreads = omp_get_max_threads();
+      #else
+         Index_t numthreads = 1;
+      #endif
 
-      if(Archive::is_loading::value){
-         m_nodeElemCornerList = new Index_t[m_nodeElemStart[m_numNode]];
+      if (numthreads > 1) {
+         if(Archive::is_loading::value){
+            m_nodeElemStart = new Index_t[m_numNode+1];
+         }
+         ar & boost::serialization::make_array <Index_t> (m_nodeElemStart, m_numNode+1);
+
+         if(Archive::is_loading::value){
+            m_nodeElemCornerList = new Index_t[m_nodeElemStart[m_numNode]];
+         }
+         ar & boost::serialization::make_array <Index_t> (m_nodeElemCornerList, m_nodeElemStart[m_numNode]);
+      } else {
+         m_nodeElemStart = NULL;
+         m_nodeElemCornerList = NULL;
       }
-      ar & boost::serialization::make_array <Index_t> (m_nodeElemCornerList, m_nodeElemStart[m_numNode]);
 
       // Used in setup
       ar & m_rowMin;
@@ -627,7 +641,7 @@ class Domain {
       ar & m_planeMin;
       ar & m_planeMax; 
 
-#if USE_MPI   
+     #if USE_MPI   
      // account for face communication 
      Index_t comBufSize =
        (m_rowMin + m_rowMax + m_colMin + m_colMax + m_planeMin + m_planeMax) *
@@ -661,19 +675,19 @@ class Domain {
       ar & boost::serialization::make_array <Real_t> (commDataRecv,comBufSize);
       ar & boost::serialization::make_array <Real_t> (commDataSend,comBufSize);
 
-#endif
+      #endif
 
       //Check de/serialization
-      if(Archive::is_loading::value){
-         std::cout << "\n-------------------------\n";
-         std::cout << "Deserialization finished.\n";
-         std::cout << "-------------------------\n";
-      }
-      else {
-         std::cout << "\n-------------------------\n";
-         std::cout << "Serialization finished.\n";
-         std::cout << "-------------------------\n\n";
-      }
+      // if(Archive::is_loading::value){
+      //    std::cout << "\n-------------------------\n";
+      //    std::cout << "Deserialization finished.\n";
+      //    std::cout << "-------------------------\n";
+      // }
+      // else {
+      //    std::cout << "\n-------------------------\n";
+      //    std::cout << "Serialization finished.\n";
+      //    std::cout << "-------------------------\n\n";
+      // }
    }
 
    //
