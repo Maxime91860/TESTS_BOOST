@@ -10,4 +10,4 @@ all : note.exe gps.exe demo.exe  test_perso.exe # demo_xml.exe
 	c++ $^ $(BOOST_FLAGS) -o bin/$@
 
 clean :
-	rm -rf *.exe *.ser *.txt
+	rm -rf *.exe *.ser *.txt bin/*
