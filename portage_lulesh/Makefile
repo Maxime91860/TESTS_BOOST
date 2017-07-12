@@ -44,7 +44,7 @@ LDFLAGS = -g -O3 -fopenmp
 #LDFLAGS = -g -L${SILO_LIBDIR} -Wl,-rpath -Wl,${SILO_LIBDIR} -lsiloh5 -lhdf5
 
 #Serialization with Boost library
-BOOST_PATH=/home/max/boost_1_64_0/install
+BOOST_PATH=${HOME}/boost_1_64_0/install
 BOOST_IFLAG=-I$(BOOST_PATH)/include
 BOOST_LDFLAG=-L$(BOOST_PATH)/lib -lboost_serialization
 BOOST_FLAGS=$(BOOST_IFLAG) $(BOOST_LDFLAG)
