@@ -177,7 +177,7 @@ std::stringstream locDom_ser;
 // FTI Checkpoint - Restart
 //*************************
 #include <fti.h> 
-#define ITER_OUT 5
+#define ITER_OUT 10
 
 /*********************************/
 /* Data structure implementation */
@@ -2822,7 +2822,12 @@ int main(int argc, char *argv[])
 
   
   save(locDom);
+  MPI_Barrier(FTI_COMM_WORLD);
+  if (!myRank){
+    std::cout << "-- Serialization finished --\n";
+  }
 
+  //Cast std::stringstream -> char*
   int buffer_size = 0;
   char* buffer_locDom_ser;
   std::string tmp = locDom_ser.str();
@@ -2830,105 +2835,138 @@ int main(int argc, char *argv[])
   buffer_locDom_ser = new char [buffer_size];
   std::strcpy(buffer_locDom_ser, tmp.c_str());
 
-  if (myRank == 0){
-    std::cout << "buffer_size = " << buffer_size << "\n";
-  }
+  //Check size
+  // if (!myRank){
+  //   std::cout << "buffer_size = " << buffer_size << "\n";
+  // }
 
   //Checkpoint informations
-  // typedef struct cInfo {
-      int id = 1;
-      int level = 1;
-  // } cInfo;
-  // cInfo myCkpt = {1,1};
-  // FTIT_type ckptInfo;
-  // FTI_InitType(&ckptInfo, 2*sizeof(int));
+  int id = 1;
+  int level = 1;
   int res;
 
   FTI_Protect(0, buffer_locDom_ser, buffer_size, FTI_CHAR);
-  // FTI_Protect(1, &myCkpt, 1, ckptInfo);
   FTI_Protect(1, &id, 1, FTI_INTG);
   FTI_Protect(2, &level, 1, FTI_INTG);
 
-  // Test serialisation
-  // Domain *locDom2;
-  // locDom2 = load();
-  // delete locDom;
-  // locDom = locDom2;
+
+  //Cast char* -> std::stringstream
+  locDom_ser.str(""); //clear locDom_ser
+  locDom_ser.str(buffer_locDom_ser); //put the buffer in the std::stringstream
+
+
+  // Test deserialisation//Cast std::stringstream -> char*
+  Domain *locDom2;
+  locDom2 = load();
+  MPI_Barrier(FTI_COMM_WORLD);
+  if (!myRank){
+    std::cout << "-- Deserialization finished --\n";
+  }
+  delete locDom;
+  locDom = NULL;
+  locDom = locDom2;
 
 
 
 //---------------------------------------------------------------------------------------------------------------------//
    if (myRank == 0){
      std::cout << "-- Start of the main loop --\n";
-     std::cout << "avant loop level = " << level << ", id = " << id << "\n";
+     // std::cout << "avant loop level = " << level << ", id = " << id << "\n";
    }  
    while((locDom->time() < locDom->stoptime()) && (locDom->cycle() < opts.its)) {
 
+      //Checkpoint - Restart 
       //Restart
-      if (FTI_Status() != 0) {
+      if(FTI_Status() != 0){
         if(!myRank)
-          std::cout << "--- Restart ---\n";
+          std::cout << "---- Restart ----\n";
         res = FTI_Recover();
-
-        //recreate the stringstream
-        locDom_ser.str(std::string()); //clean the stream
-        locDom_ser << buffer_locDom_ser;
-
-        //swap the instance
-        Domain *tmp;
-        std::cout << "pendant recover level = " << level << ", id = " << id << "\n";
-        std::cout << "avant catastrophe \n";
-        tmp = load();
-        delete locDom;
-        locDom = tmp;
-
-        
-
         if (res != 0) {
             exit(1);
         }
         else { // Update ckpt. id & level
-            level = (level+1)%5;
+            level = (level+1)%5; 
             id++;
         }
-      } //Checkpoint
+
+        tmp = "";
+        std::string line;
+        char filename[256];
+        snprintf(filename, 256, "lulesh#%d.ser", myRank);
+        std::ifstream file_input(filename);
+        delete buffer_locDom_ser;
+        while(std::getline(file_input, line))
+        {
+          tmp += line + "\n";
+        }
+        buffer_size = tmp.size();
+        buffer_locDom_ser = new char[buffer_size];
+        std::strcpy(buffer_locDom_ser, tmp.c_str());
+
+        level = 1;
+        id = 1;
+
+        //output to check
+        // if(!myRank){
+        //   char filename[256] = "restarted_buffer";
+        //   std::ofstream file(filename);
+        //   file << "level = " << level << ", id = " << id <<"\n";
+        //   file << buffer_locDom_ser;
+        // }
+
+        locDom_ser.str(""); //clear locDom_ser
+        locDom_ser.str(buffer_locDom_ser); //put the buffer in the std::stringstream
+        Domain *locDom2;
+        locDom2 = load();
+        MPI_Barrier(FTI_COMM_WORLD);
+        if (!myRank){
+          std::cout << "-- Deserialization finished --\n";
+        }
+        delete locDom;
+        locDom = NULL;
+        locDom = locDom2;
+      }
       else {
-        // if (((locDom->cycle()+1)%ITER_OUT) == 0) { // Checkpoint every ITER_OUT steps
-        if (locDom->cycle() == 10){
+        //Checkpoint at ITER_OUT
+        if( ((locDom->cycle()+1)%ITER_OUT) == 0){
           if(!myRank)
-            std::cout << "--- Checkpoint #" << id << "---\n";
+            std::cout << "---- Checkpoint #" << id << " ----\n";
 
           //Serialization
-          locDom_ser.str(std::string()); //clean the stream
+          locDom_ser.str("");
           save(locDom);
-
-          // //Cast to char*
+          //Cast std::stringstream -> char*
           std::string tmp = locDom_ser.str();
           buffer_size = tmp.size();
-          // if (!myRank)
-          //   std::cout << "buffer_size = " << buffer_size << "\n";
           delete buffer_locDom_ser;
           buffer_locDom_ser = new char [buffer_size];
-          if(!myRank)
-            std::cout << "avant strcpy\n";
           std::strcpy(buffer_locDom_ser, tmp.c_str());
 
-          std::ofstream file_output("buffer_locDom_ser");
+          //output to check
+          // if(!myRank){
+          //   std::cout << "buffer_size = " << buffer_size << ", level = " << level << ", id = " << id <<"\n";
+          //   char filename[256] = "checkpointed_buffer";
+          //   std::ofstream file(filename);
+          //   file << "level = " << level << ", id = " << id <<"\n";
+          //   file << buffer_locDom_ser;
+          // }
+
+          char filename[256];
+          snprintf(filename, 256, "lulesh#%d.ser", myRank);
+          std::ofstream file_output(filename);
           file_output << buffer_locDom_ser;
 
 
-          std::cout << "avant checkpoint level = " << level << ", id = " << id << "\n";
 
+          //Redefine the variable to be checkpointed
           FTI_Protect(0, buffer_locDom_ser, buffer_size, FTI_CHAR);
 
-
-          //Perform the checkpoint
-          res = FTI_Checkpoint(id, level); // Ckpt ID 5 is ignored because level = 0
-          if (res == 0) {
-              level = (level+1)%5;
-              id++;
-          } // Update ckpt. id & level
-          sleep(5);
+          res = FTI_Checkpoint(level, id);
+          sleep(3);
+          // if(res != 0){
+          //   id++;
+          //   level = (level+1)%5;
+          // }
         }
       }
 

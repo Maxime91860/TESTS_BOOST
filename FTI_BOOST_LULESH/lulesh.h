@@ -679,16 +679,16 @@ class Domain {
       #endif
 
       //Check de/serialization
-      if(Archive::is_loading::value){
-         std::cout << "-------------------------\n";
-         std::cout << "Deserialization finished.\n";
-         std::cout << "-------------------------\n";
-      }
-      else {
-         std::cout << "-------------------------\n";
-         std::cout << "Serialization finished.\n";
-         std::cout << "-------------------------\n";
-      }
+      // if(Archive::is_loading::value){
+      //    std::cout << "-------------------------\n";
+      //    std::cout << "Deserialization finished.\n";
+      //    std::cout << "-------------------------\n";
+      // }
+      // else {
+      //    std::cout << "-------------------------\n";
+      //    std::cout << "Serialization finished.\n";
+      //    std::cout << "-------------------------\n";
+      // }
    }
 
    //
