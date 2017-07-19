@@ -1,0 +1,669 @@
+
+lulesh.h
+26a27,36
+> //********************
+> // Boost Serialization
+> //********************
+> #include <boost/serialization/vector.hpp>
+> #include <iostream>
+> #include <fstream>
+> #if _OPENMP
+> #include <omp.h>
+> #endif
+> 
+135a146,166
+>    Domain ()   :
+>    m_e_cut(Real_t(1.0e-7)),
+>    m_p_cut(Real_t(1.0e-7)),
+>    m_q_cut(Real_t(1.0e-7)),
+>    m_v_cut(Real_t(1.0e-10)),
+>    m_u_cut(Real_t(1.0e-7)),
+>    m_hgcoef(Real_t(3.0)),
+>    m_ss4o3(Real_t(4.0)/Real_t(3.0)),
+>    m_qstop(Real_t(1.0e+12)),
+>    m_monoq_max_slope(Real_t(1.0)),
+>    m_monoq_limiter_mult(Real_t(2.0)),
+>    m_qlc_monoq(Real_t(0.5)),
+>    m_qqc_monoq(Real_t(2.0)/Real_t(3.0)),
+>    m_qqc(Real_t(2.0)),
+>    m_eosvmax(Real_t(1.0e+9)),
+>    m_eosvmin(Real_t(1.0e-9)),
+>    m_pmin(Real_t(0.)),
+>    m_emin(Real_t(-1.0e+15)),
+>    m_dvovmax(Real_t(0.1)),
+>    m_refdens(Real_t(1.0)) {};
+> 
+424a456,692
+> 
+>    friend class boost::serialization::access;
+>    template <typename Archive>
+>    void serialize(Archive &ar, const unsigned int version){
+> 
+> 
+>       //Check de/serialization
+>       // if(Archive::is_loading::value){
+>       //    std::cout << "-------------------------\n";
+>       //    std::cout << "Start of deserialization.\n";
+>       //    std::cout << "-------------------------\n";
+>       // }
+>       // else {
+>       //    std::cout << "-------------------------\n";
+>       //    std::cout << "Start of serialization.\n";
+>       //    std::cout << "-------------------------\n";
+>       // }
+> 
+>       ar & m_x ;  /* coordinates */
+>       ar & m_y;
+>       ar & m_z;
+> 
+>       ar & m_xd ; /* velocities */
+>       ar & m_yd ;
+>       ar & m_zd ;
+> 
+>       ar & m_xdd ; /* accelerations */
+>       ar & m_ydd ;
+>       ar & m_zdd ;
+> 
+>       ar & m_fx ;  /* forces */
+>       ar & m_fy ;
+>       ar & m_fz ;
+> 
+>       ar & m_nodalMass ;  /* mass */
+> 
+>       ar & m_symmX ;  /* symmetry plane nodesets */
+>       ar & m_symmY ;
+>       ar & m_symmZ ;
+> 
+>       // Element-centered
+> 
+>       ar & m_numRanks ;
+>       ar & m_colLoc ;
+>       ar & m_rowLoc ;
+>       ar & m_planeLoc ;
+>       ar & m_tp ;
+> 
+>       ar & m_sizeX ;
+>       ar & m_sizeY ;
+>       ar & m_sizeZ ;
+>       ar & m_numElem ;
+>       ar & m_numNode ;
+> 
+>       ar & m_maxPlaneSize ;
+>       ar & m_maxEdgeSize ;
+> 
+>       // Region information
+>       ar &  m_numReg ;
+>       ar &  m_cost; //imbalance cost
+>       
+>       if(Archive::is_loading::value){
+>          m_regElemSize = new Index_t[m_numReg];
+>       }
+>       ar & boost::serialization::make_array <Index_t> (m_regElemSize, m_numReg); // Size of region sets
+> 
+>       if(Archive::is_loading::value){
+>          m_regNumList = new Index_t[m_numElem];
+>       }
+>       ar & boost::serialization::make_array <Index_t> (m_regNumList, m_numElem); // Region number per domain element
+> 
+>       if(Archive::is_loading::value){
+>          m_regElemlist = new Index_t*[m_numReg];
+>          for (int i = 0; i < m_numReg; i++){
+>             m_regElemlist[i] = new Index_t[m_regElemSize[i]];
+>          }
+>       }
+> 
+>       for (int i = 0; i < m_numReg; i++){
+>          ar & boost::serialization::make_array <Index_t> (m_regElemlist[i], m_regElemSize[i]);
+>       }
+> 
+>       ar &  m_nodelist ;     /* elemToNode connectivity */
+> 
+>       ar & m_lxim ;  /* element connectivity across each face */
+>       ar & m_lxip ;
+>       ar & m_letam ;
+>       ar & m_letap ;
+>       ar & m_lzetam ;
+>       ar & m_lzetap ;
+> 
+>       ar & m_elemBC ;  /* symmetry/free-surface flags for each elem face */
+> 
+>       ar & m_dxx ;  /* principal strains -- temporary */
+>       ar & m_dyy ;
+>       ar & m_dzz ;
+> 
+>       ar & m_delv_xi ;    /* velocity gradient -- temporary */
+>       ar & m_delv_eta ;
+>       ar & m_delv_zeta ;
+> 
+>       ar & m_delx_xi ;    /* coordinate gradient -- temporary */
+>       ar & m_delx_eta ;
+>       ar & m_delx_zeta ;
+> 
+>       ar & m_e ;   /* energy */
+> 
+>       ar & m_p ;   /* pressure */
+>       ar & m_q ;   /* q */
+>       ar & m_ql ;  /* linear term for q */
+>       ar & m_qq ;  /* quadratic term for q */
+> 
+>       ar & m_v ;     /* relative volume */
+>       ar & m_volo ;  /* reference volume */
+>       ar & m_vnew ;  /* new relative volume -- temporary */
+>       ar & m_delv ;  /* m_vnew - m_v */
+>       ar & m_vdov ;  /* volume derivative over volume */
+> 
+>       ar & m_arealg ;  /* characteristic length of an element */
+> 
+>       ar & m_ss ;      /* "sound speed" */
+> 
+>       ar & m_elemMass ;  /* mass */
+> 
+>       // Cutoffs (treat as constants)
+>       ar & const_cast<Real_t &>(m_e_cut);
+>       ar & const_cast<Real_t &>(m_p_cut);
+>       ar & const_cast<Real_t &>(m_q_cut);
+>       ar & const_cast<Real_t &>(m_v_cut);
+>       ar & const_cast<Real_t &>(m_u_cut);
+> 
+>       // Other constants (usually setable, but hardcoded in this proxy app)
+>       ar & const_cast<Real_t &>(m_hgcoef);
+>       ar & const_cast<Real_t &>(m_ss4o3);
+>       ar & const_cast<Real_t &>(m_qstop);
+>       ar & const_cast<Real_t &>(m_monoq_max_slope);
+>       ar & const_cast<Real_t &>(m_monoq_limiter_mult);  
+>       ar & const_cast<Real_t &>(m_qlc_monoq);
+>       ar & const_cast<Real_t &>(m_qqc_monoq);
+>       ar & const_cast<Real_t &>(m_qqc);
+>       ar & const_cast<Real_t &>(m_eosvmax);
+>       ar & const_cast<Real_t &>(m_eosvmin);
+>       ar & const_cast<Real_t &>(m_pmin);
+>       ar & const_cast<Real_t &>(m_emin);
+>       ar & const_cast<Real_t &>(m_dvovmax);
+>       ar & const_cast<Real_t &>(m_refdens);
+> 
+>       // Variables to keep track of timestep, simulation time, and cycle
+>       ar &  m_dtcourant ;         // courant constraint 
+>       ar &  m_dthydro ;           // volume change constraint 
+>       ar &   m_cycle ;             // iteration count for simulation 
+>       ar &  m_dtfixed ;           // fixed time increment 
+>       ar &  m_time ;              // current time 
+>       ar &  m_deltatime ;         // variable time increment 
+>       ar &  m_deltatimemultlb ;
+>       ar &  m_deltatimemultub ;
+>       ar &  m_dtmax ;             // maximum allowable time increment 
+>       ar &  m_stoptime ;          // end time for simulation 
+> 
+>       // OMP hack 
+>       #if _OPENMP
+>          Index_t numthreads = omp_get_max_threads();
+>       #else
+>          Index_t numthreads = 1;
+>       #endif
+> 
+>       if (numthreads > 1) {
+>          if(Archive::is_loading::value){
+>             m_nodeElemStart = new Index_t[m_numNode+1];
+>          }
+>          ar & boost::serialization::make_array <Index_t> (m_nodeElemStart, m_numNode+1);
+> 
+>          if(Archive::is_loading::value){
+>             m_nodeElemCornerList = new Index_t[m_nodeElemStart[m_numNode]];
+>          }
+>          ar & boost::serialization::make_array <Index_t> (m_nodeElemCornerList, m_nodeElemStart[m_numNode]);
+>       } else {
+>          m_nodeElemStart = NULL;
+>          m_nodeElemCornerList = NULL;
+>       }
+> 
+>       // Used in setup
+>       ar & m_rowMin;
+>       ar & m_rowMax;
+>       ar & m_colMin;
+>       ar & m_colMax;
+>       ar & m_planeMin;
+>       ar & m_planeMax; 
+> 
+>      #if USE_MPI   
+>      // account for face communication 
+>      Index_t comBufSize =
+>        (m_rowMin + m_rowMax + m_colMin + m_colMax + m_planeMin + m_planeMax) *
+>        m_maxPlaneSize * MAX_FIELDS_PER_MPI_COMM ;
+> 
+>      // account for edge communication 
+>      comBufSize +=
+>        ((m_rowMin & m_colMin) + (m_rowMin & m_planeMin) + (m_colMin & m_planeMin) +
+>         (m_rowMax & m_colMax) + (m_rowMax & m_planeMax) + (m_colMax & m_planeMax) +
+>         (m_rowMax & m_colMin) + (m_rowMin & m_planeMax) + (m_colMin & m_planeMax) +
+>         (m_rowMin & m_colMax) + (m_rowMax & m_planeMin) + (m_colMax & m_planeMin)) *
+>        m_maxEdgeSize * MAX_FIELDS_PER_MPI_COMM ;
+> 
+>      // account for corner communication 
+>      // factor of 16 is so each buffer has its own cache line 
+>      comBufSize += ((m_rowMin & m_colMin & m_planeMin) +
+>           (m_rowMin & m_colMin & m_planeMax) +
+>           (m_rowMin & m_colMax & m_planeMin) +
+>           (m_rowMin & m_colMax & m_planeMax) +
+>           (m_rowMax & m_colMin & m_planeMin) +
+>           (m_rowMax & m_colMin & m_planeMax) +
+>           (m_rowMax & m_colMax & m_planeMin) +
+>           (m_rowMax & m_colMax & m_planeMax)) * CACHE_COHERENCE_PAD_REAL ;
+> 
+> 
+>       // Communication Work space 
+>       if(Archive::is_loading::value){
+>          commDataSend = new Real_t[comBufSize];
+>          commDataRecv = new Real_t[comBufSize];
+>       }
+>       ar & boost::serialization::make_array <Real_t> (commDataRecv,comBufSize);
+>       ar & boost::serialization::make_array <Real_t> (commDataSend,comBufSize);
+> 
+>       #endif
+> 
+>       //Check de/serialization
+>       // if(Archive::is_loading::value){
+>       //    std::cout << "-------------------------\n";
+>       //    std::cout << "Deserialization finished.\n";
+>       //    std::cout << "-------------------------\n";
+>       // }
+>       // else {
+>       //    std::cout << "-------------------------\n";
+>       //    std::cout << "Serialization finished.\n";
+>       //    std::cout << "-------------------------\n";
+>       // }
+>    }
+
+lulesh-comm.cc
+7a8
+> #include <fti.h>
+101c102
+<    MPI_Comm_rank(MPI_COMM_WORLD, &myRank) ;
+---
+>    MPI_Comm_rank(FTI_COMM_WORLD, &myRank) ;
+112c113
+<                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+---
+>                 FTI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+121c122
+<                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+---
+>                 FTI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+130c131
+<                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+---
+>                 FTI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+139c140
+<                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+---
+>                 FTI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+148c149
+<                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+---
+>                 FTI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+157c158
+<                 MPI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+---
+>                 FTI_COMM_WORLD, &domain.recvRequest[pmsg]) ;
+168c169
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+177c178
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+186c187
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+195c196
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+204c205
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+213c214
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+222c223
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+231c232
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+240c241
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+249c250
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+258c259
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+267c268
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg]) ;
+279c280
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+289c290
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+299c300
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+309c310
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+319c320
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+329c330
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+339c340
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+349c350
+<                    MPI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.recvRequest[pmsg+emsg+cmsg]) ;
+401c402
+<    MPI_Comm_rank(MPI_COMM_WORLD, &myRank) ;
+---
+>    MPI_Comm_rank(FTI_COMM_WORLD, &myRank) ;
+422c423
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+438c439
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+461c462
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+479c480
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+502c503
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+520c521
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg]) ;
+539c540
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+556c557
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+573c574
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+590c591
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+607c608
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+624c625
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+641c642
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+658c659
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+675c676
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+692c693
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+709c710
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+726c727
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg]) ;
+740c741
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+754c755
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+768c769
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+782c783
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+796c797
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+810c811
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+824c825
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+838c839
+<                    MPI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+---
+>                    FTI_COMM_WORLD, &domain.sendRequest[pmsg+emsg+cmsg]) ;
+889c890
+<    MPI_Comm_rank(MPI_COMM_WORLD, &myRank) ;
+---
+>    MPI_Comm_rank(FTI_COMM_WORLD, &myRank) ;
+1310c1311
+<    MPI_Comm_rank(MPI_COMM_WORLD, &myRank) ;
+---
+>    MPI_Comm_rank(FTI_COMM_WORLD, &myRank) ;
+1734c1735
+<    MPI_Comm_rank(MPI_COMM_WORLD, &myRank) ;
+---
+>    MPI_Comm_rank(FTI_COMM_WORLD, &myRank) ;
+
+
+lulesh.cc
+164a165,180
+> //********************
+> // Boost Serialization
+> //********************
+> #include <boost/archive/text_oarchive.hpp>
+> #include <boost/archive/text_iarchive.hpp>
+> 
+> #include <sstream>
+> // --- File version ---
+> #include <fstream>
+> std::stringstream locDom_ser;
+> 
+> //*************************
+> // FTI Checkpoint - Restart
+> //*************************
+> #include <fti.h> 
+> #define ITER_CKPT 100
+216c232
+<                     MPI_MIN, MPI_COMM_WORLD) ;
+---
+>                     MPI_MIN, FTI_COMM_WORLD) ;
+1064c1080
+<          MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+---
+>          MPI_Abort(FTI_COMM_WORLD, VolumeError) ;
+1114c1130
+<             MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+---
+>             MPI_Abort(FTI_COMM_WORLD, VolumeError) ;
+1629c1645
+<            MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+---
+>            MPI_Abort(FTI_COMM_WORLD, VolumeError) ;
+2033c2049
+<          MPI_Abort(MPI_COMM_WORLD, QStopError) ;
+---
+>          MPI_Abort(FTI_COMM_WORLD, QStopError) ;
+2402c2418
+<              MPI_Abort(MPI_COMM_WORLD, VolumeError) ;
+---
+>              MPI_Abort(FTI_COMM_WORLD, VolumeError) ;
+2685a2702,2714
+> //Serialization 
+> void save (Domain *dom_saved){
+>   boost::archive::text_oarchive oa(locDom_ser);
+>   oa << dom_saved;
+> }
+> 
+> //Deserialization
+> Domain* load (){
+>   Domain *dom_loaded;
+>   boost::archive::text_iarchive ia(locDom_ser);
+>   ia >> dom_loaded;
+>   return dom_loaded;
+> }
+2700,2701c2729,2732
+<    MPI_Comm_size(MPI_COMM_WORLD, &numRanks) ;
+<    MPI_Comm_rank(MPI_COMM_WORLD, &myRank) ;
+---
+>    char config_fti[] = "config.fti";
+>    FTI_Init(config_fti, MPI_COMM_WORLD);
+>    MPI_Comm_size(FTI_COMM_WORLD, &numRanks) ;
+>    MPI_Comm_rank(FTI_COMM_WORLD, &myRank) ;
+2758c2789
+<    MPI_Barrier(MPI_COMM_WORLD);
+---
+>    MPI_Barrier(FTI_COMM_WORLD);
+2769,2771c2800,2831
+< //   for(Int_t i = 0; i < locDom->numReg(); i++)
+< //      std::cout << "region" << i + 1<< "size" << locDom->regElemSize(i) <<std::endl;
+<    while((locDom->time() < locDom->stoptime()) && (locDom->cycle() < opts.its)) {
+---
+>   // for(Int_t i = 0; i < locDom->numReg(); i++)
+>   //    std::cout << "region" << i + 1<< "size" << locDom->regElemSize(i) <<std::endl;
+> 
+> 
+> //---------------------------------------------------------------------------------------------------------------------//
+> 
+>   //First serialization to get a buffer size  
+>   save(locDom);
+> 
+>   //Cast std::stringstream -> char*
+>   int buffer_size = 0;
+>   char* buffer_locDom_ser;
+>   std::string tmp = locDom_ser.str();
+>   buffer_size = tmp.size();
+>   buffer_size += 1000000; //Add this to handle the dynamic change size of the buffer 
+>   buffer_locDom_ser = new char [buffer_size];
+>   strcpy(buffer_locDom_ser, tmp.c_str());
+> 
+>   //Checkpoint informations
+>   int id = 1;
+>   int level = 1;
+>   int res;
+> 
+>   FTI_Protect(0, &id, 1, FTI_INTG);
+>   FTI_Protect(1, &level, 1, FTI_INTG);
+>   FTI_Protect(2, buffer_locDom_ser, buffer_size, FTI_CHAR);
+> 
+> 
+>   //Restart
+>   if(FTI_Status() != 0){
+>     if(!myRank)
+>       std::cout << "---- Restart ----\n";
+2772a2833,2861
+>     res = FTI_Recover();
+> 
+>     //Update checkpoint information
+>     if (res != 0) {
+>         exit(1);
+>     }
+>     else { // Update ckpt. id & level
+>         level = (level+1)%5; 
+>         id++;
+>     }
+> 
+>     //Cast char* to stringstream
+>     locDom_ser.str(""); //reset the stringstream
+>     locDom_ser.str(buffer_locDom_ser);
+> 
+>     //Deserialization
+>     Domain *tmp;
+>     tmp = load();
+> 
+>     //Set the used by simulation object
+>     delete locDom;
+>     locDom = NULL;
+>     locDom = tmp;
+>   }
+> 
+> //---------------------------------------------------------------------------------------------------------------------//
+>    if (!myRank)
+>      std::cout << "-- Start of the main loop --\n";
+>    while((locDom->time() < locDom->stoptime()) && (locDom->cycle() < opts.its)) {
+2779a2869,2888
+> 
+>       //Checkpoint at ITER_CKPT
+>       if((locDom->cycle()%ITER_CKPT) == 0 && locDom->cycle() != opts.its){
+> 
+>         //Serialization of locDom in std::stringstream
+>         locDom_ser.str("");
+>         save(locDom);
+> 
+>         //Cast std::stringstream -> char*
+>         std::string tmp = locDom_ser.str();
+>         buffer_locDom_ser[0] = '\0'; //reset the buffer
+>         strcpy(buffer_locDom_ser, tmp.c_str());
+> 
+>         res = FTI_Checkpoint(id, level);
+>         // sleep(3); //for the tests
+>         if(res != 0){
+>           id++;
+>           level= (level%4)+1;
+>         }
+>       }
+2794c2903
+<               MPI_MAX, 0, MPI_COMM_WORLD);
+---
+>               MPI_MAX, 0, FTI_COMM_WORLD);
+2808a2918
+>    FTI_Finalize();
