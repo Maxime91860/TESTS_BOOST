@@ -42,7 +42,6 @@ class A
 				std::cout << std::dec;
 				display_tab1D(tab_2D[i], m_size);
 			}
-
 		}
 
 	private :

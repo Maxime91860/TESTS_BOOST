@@ -2843,6 +2843,7 @@ int main(int argc, char *argv[])
   locDom2 = load(myRank);
   
   delete locDom;
+  locDom = NULL;
   //Echange d'instance
   locDom = locDom2;
 

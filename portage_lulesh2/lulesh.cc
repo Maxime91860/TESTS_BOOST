@@ -2692,10 +2692,8 @@ void LagrangeLeapFrog(Domain& domain)
 }
 
 void save (Domain *dom_saved){
-  // std::stringstream ss;
   boost::archive::text_oarchive oa(locDom_ser);
   oa << dom_saved;
-  // return ss.str();
 }
 
 Domain* load (){
@@ -2801,6 +2799,7 @@ int main(int argc, char *argv[])
   locDom2 = load();
   
   delete locDom;
+  locDom = NULL;
   //Echange d'instance
   locDom = locDom2;
 
