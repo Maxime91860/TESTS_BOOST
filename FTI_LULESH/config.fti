@@ -1,0 +1,38 @@
+
+[basic]
+head                           = 0
+node_size                      = 2
+ckpt_dir                       = ./ckpt_files/local
+glbl_dir                       = ./ckpt_files/global
+meta_dir                       = ./ckpt_files/meta
+ckpt_l1                        = 1
+ckpt_l2                        = 3
+ckpt_l3                        = 5
+ckpt_l4                        = 11
+inline_l2                      = 1
+inline_l3                      = 1
+inline_l4                      = 1
+keep_last_ckpt                 = 0
+group_size                     = 4
+verbosity                      = 2
+
+
+[restart]
+failure                        = 0
+exec_id                        = 2017-07-19_17-43-47
+
+
+[injection]
+rank                           = 0
+number                         = 0
+position                       = 0
+frequency                      = 0
+
+
+[advanced]
+block_size                     = 1024
+transfer_size                  = 16
+mpi_tag                        = 2612
+local_test                     = 1
+
+
